@@ -9,7 +9,7 @@ def state_to_tensor(state: State):
     return torch.tensor([
         state.cart_position / 0.5,
         state.cart_velocity / 2.0,
-        state.cart_acceleration / 5.0,
+        state.cart_acceleration / 1.0,
         -cos(state.pole_angle),
         tanh(state.pole_angular_velocity),
     ])

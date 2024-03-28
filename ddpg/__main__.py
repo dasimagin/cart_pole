@@ -17,11 +17,11 @@ config = Config(
     max_action = 1,
     discount = 0.99,
     memory_size = int(1e6),
-    device_name = 'cpu',
+    device_name = 'mps',
     batch_size = 1024,
     actor_lr = 1e-4,
-    critic_lr = 2e-4,
-    tau = 0.005
+    critic_lr = 1e-3,
+    tau = 0.05
 )
 
 delta = 0.005
@@ -33,13 +33,11 @@ trainer = Trainer(log, config)
 
 total = 0
 state = State()
-for episode in range(30):
-    cartpole.reset
-    state = State(stamp=state.stamp)
+for episode in tqdm.tqdm(count()):
+    state = State(cart_position=torch.normal(0.0, 0.2, (1,)).item(), pole_angle=torch.normal(0.0, 0.2, (1, )).item())
     cartpole.reset(state=state)
-    print(state.stamp)
 
-    for _ in tqdm.tqdm(range(1000000)):
+    for _ in count():
         total += 1
         prev_state = state
 
@@ -47,18 +45,15 @@ for episode in range(30):
         state = cartpole.get_state()
         reward = compute_reward(state)
 
-        if total > 3000:
-            action = trainer.select_action(state, sigma=0.2, train=True).item()
-        else:
-            action = torch.normal(0.0, 0.7, (1,)).item()
+        action = trainer.select_action(state, sigma=0.05, train=True, episode=episode, total=total).item()
 
         trainer.memory.add(prev_state, state, action, reward.value)
         cartpole.set_target(Target(acceleration=action))
+        if episode > 5:
+            trainer.learn(total=total)
 
-        trainer.learn(total=total)
-
-        log.publish('/cartpole/state', state, state.stamp)
-        log.publish('/cartpole/reward', reward, state.stamp)
+        log.publish('/cartpole/state', state, total)
+        log.publish('/cartpole/reward', reward, total)
 
         if state.error != Error.NO_ERROR:
             break
