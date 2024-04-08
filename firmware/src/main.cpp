@@ -20,15 +20,15 @@ void debug_pulse() {
 
 void loop() {
     GetStepper().Poll();
-    debug_pulse();
+    // debug_pulse();
     GetPoleEncoder().Poll();
-    debug_pulse();
+    // debug_pulse();
     // GetMotorEncoder().Poll();
     // debug_pulse();
     // GetAccelerometer().Poll();
     // debug_pulse();
     GetProtocolProcessor().Poll();
-    debug_pulse();
+    // debug_pulse();
 
     // delayMicroseconds(20);
     // if (Serial.available()) {

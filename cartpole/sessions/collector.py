@@ -19,6 +19,14 @@ from cartpole.common.interface import CartPoleBase, Config, State
 from cartpole.common.util import init_logging
 from cartpole.sessions.actor import Actor
 
+import asyncio
+import json
+import time
+from foxglove_websocket.server import FoxgloveServer, FoxgloveServerListener
+from foxglove_websocket.types import ChannelId
+from threading import Thread, Event
+from queue import Queue
+
 
 LOGGER = logging.getLogger(__name__)
 HEX_DIGITS = list(string.digits + string.ascii_lowercase[:6])
@@ -136,6 +144,56 @@ class CollectorProxy(CartPoleBase):
         self._available_values = threading.Semaphore(0)
         self._start_perf_timestamp = None
 
+        self._foxglove_thread = Thread(target=self._foxglove_thread_main)
+        self._foxglove_thread.start()
+        self._foxglove_stop_event = threading.Event()
+        self._foxglove_last_state = None
+
+    def _foxglove_thread_main(self):
+        loop = self._foxglove_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        queue = self._foxglove_queue =  Queue()
+        loop.run_until_complete(self._foxglove_server_loop(queue))
+
+    async def _foxglove_server_loop(self, queue: Queue):
+        class Listener(FoxgloveServerListener):
+            def on_subscribe(self, server: FoxgloveServer, channel_id: ChannelId):
+                print("First client subscribed to", channel_id)
+
+            def on_unsubscribe(self, server: FoxgloveServer, channel_id: ChannelId):
+                print("Last client unsubscribed from", channel_id)
+
+        async with FoxgloveServer("0.0.0.0", 9999, "example server") as server:
+            print("FOXGLOVE STARTED")
+            server.set_listener(Listener())
+            channel_id = await server.add_channel(
+                {
+                    "topic": "/cartpole/state",
+                    "encoding": "json",
+                    "schemaName": "CartPoleState",
+                    "schema": json.dumps(
+                        {
+                            "type": "object",
+                            "properties": {
+                                "cart_position": {"type": "number"},
+                                "cart_velocity": {"type": "number"},
+                                "cart_acceleration": {"type": "number"},
+                                "pole_angle": {"type": "number"},
+                                "pole_angular_velocity": {"type": "number"},
+                            },
+                        }
+                    ),
+                }
+            )
+
+            while not self._foxglove_stop_event.is_set():
+                await asyncio.sleep(1 / 100)
+                data = self._foxglove_last_state
+                if data is None: continue
+                # data = queue.get()
+                payload = json.dumps(data).encode("utf-8")
+                await server.send_message(channel_id, time.time_ns(), payload)
+
     def _timestamp(self):
         return time.perf_counter_ns() // 1000 - self._start_perf_timestamp
 
@@ -228,6 +286,15 @@ class CollectorProxy(CartPoleBase):
 
             self._add_value(key, trace.start_timestamp, value)
 
+        self._foxglove_last_state = {
+            "cart_position": state.cart_position,
+            "cart_velocity": state.cart_velocity,
+            "cart_acceleration": state.cart_acceleration,
+            "pole_angle": float(state.pole_angle % (np.pi * 2)),
+            "pole_angular_velocity": state.pole_angular_velocity,
+        }
+        # self._foxglove_queue.put_nowait(self._foxglove_last_state)
+
         LOGGER.info(f"Get state: {state}")
         return state
 
@@ -258,6 +325,7 @@ class CollectorProxy(CartPoleBase):
         self._cleanup_logging()
         # self.save()
         self._started_flag.clear()
+        self._foxglove_stop_event.set()
 
     def meta(self) -> dict:
         if not self._started_flag.is_set():

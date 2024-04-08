@@ -11,8 +11,8 @@ const int TMC_EN = 25;
 const int TMC_STEP = 33;
 const int TMC_DIR = 32;
 const int TMC_STALLGUARD = 39;
-const int ENDSTOP_LEFT = 34;
-const int ENDSTOP_RIGHT = 35;
+const int ENDSTOP_LEFT = 35;
+const int ENDSTOP_RIGHT = 34;
 const bool INVERSE_ENDSTOPS = false;
 
 const HardwareSerial STEPPER_SERIAL_PORT = Serial2;
@@ -20,12 +20,12 @@ const float STEPPER_CURRENT = 2.0;
 const int SERIAL_SPEED = 115200;
 const int ADDRESS = 0b00;
 const float R_SENSE = 0.11;
-const int TOFF_VALUE = 5;
+const int TOFF_VALUE = 2;
 const int MICROSTEPS = 16;
-const bool REVERSE_STEPPER = false;
-const int FULL_STEPS_PER_METER = 1666;
-const float HOMING_SPEED = 0.1;
-const float HOMING_ACCELERATION = 0.5;
+const bool REVERSE_STEPPER = true;
+const int FULL_STEPS_PER_METER = 2000;
+const float HOMING_SPEED = 0.2;
+const float HOMING_ACCELERATION = 1.0;
 
 const int METERS_TO_STEPS_MULTIPLIER = MICROSTEPS * FULL_STEPS_PER_METER;
 const float LIMITS_EPS = 1e-3;
@@ -57,8 +57,29 @@ Stepper::Stepper()
     delay(10);
     tmc_serial_port.begin(SERIAL_SPEED);
     tmc_driver.begin();
-    tmc_driver.rms_current(STEPPER_CURRENT * 1000);
+    // https://github.com/Klipper3d/klipper/blob/9a92b346fd81386c54464b45d8310dab972b6bbd/config/example-extras.cfg#L1441
+    tmc_driver.I_scale_analog(0);
+    tmc_driver.rms_current(1500, 0.5);
     tmc_driver.microsteps(MICROSTEPS == 1 ? 0 : MICROSTEPS);
+    // tmc_driver.en_spreadCycle(true);
+
+    tmc_driver.en_spreadCycle(true);
+    // tmc_driver.iholddelay(8);
+    tmc_driver.tbl(2);
+    tmc_driver.hend(0);
+    tmc_driver.hstrt(5);
+    tmc_driver.intpol(true);
+    tmc_driver.pwm_autograd(true);
+    tmc_driver.pwm_autoscale(true);
+
+    // tmc_driver.pwm_lim(12);
+    // tmc_driver.pwm_reg(8);
+    // tmc_driver.pwm_freq(1);
+    // tmc_driver.pwm_grad(14);
+    // tmc_driver.pwm_ofs(36);
+    // tmc_driver.SGTHRS(0);
+    // tmc_driver.TPWMTHRS(0);
+    // tmc_driver.TCOOLTHRS(0);
     tmc_driver.toff(0);
 
     // Init FastAccelStepper
@@ -120,7 +141,6 @@ void Stepper::SetError(Error err, std::string what) {
 void Stepper::Enable() {
     ProtocolProcessor &P = GetProtocolProcessor();
     tmc_driver.toff(TOFF_VALUE);
-    tmc_driver.rms_current(STEPPER_CURRENT * 1000);
     P.Log("Stepper enabled");
 }
 
@@ -133,7 +153,7 @@ void Stepper::Disable() {
 
 void Stepper::ForceStop() {
     ProtocolProcessor &P = GetProtocolProcessor();
-    fas_stepper->forceStopAndNewPosition(fas_stepper->getCurrentPosition());
+    fas_stepper->forceStop();
     P.Log("Force stopped stepper");
 }
 

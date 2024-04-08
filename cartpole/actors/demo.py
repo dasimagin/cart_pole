@@ -19,7 +19,7 @@ class DemoActor(Actor):
         logger.info("Trajectory ready")
 
     def __call__(self, state: State, stamp=None) -> float:
-        # self.save_expected_state(stamp)
+        self.save_expected_state(stamp)
         if stamp < self.trajectory.duration:
             target = self.trajectory_control(stamp, state)
         else:

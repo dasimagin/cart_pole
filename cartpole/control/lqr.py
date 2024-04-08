@@ -27,7 +27,7 @@ class BalanceLQRControl:
 
         # Q = numpy.diag([1, 13, 1, 4])
         # R = numpy.diag([0.18])
-        Q = numpy.diag([10.0, 1, 1, 1])
+        Q = numpy.diag([10, 1, 10, 1])
         R = numpy.diag([0.5])
 
         linearized = Linearize(system, context)
@@ -36,6 +36,7 @@ class BalanceLQRControl:
     def __call__(self, state):
         q = state.as_array()
         error = q - self.q0
+        print(f"ERROR: {error[0]:.2f} {error[1]:.2f} {error[2]:.2f} {error[3]:.2f}")
         u = -self.K @ error
         return u[0]
 

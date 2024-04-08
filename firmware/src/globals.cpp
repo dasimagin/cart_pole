@@ -338,8 +338,8 @@ Globals &GetGlobals() {
         0.5,                // [m/s] Absolute max cart velocity
         1.0,                // [m/s^2] Absolute max cart acceleration
         0.0,                // [m] Absolute max hardware-allowed position
-        10,                 // fixme  // [m/s] Absolute max hardware-allowed velocity
-        10,                 // fixme  // [m/s^2] Absolute max hardware-allowed acceleration
+        100,                 // fixme  // [m/s] Absolute max hardware-allowed velocity
+        100,                 // fixme  // [m/s^2] Absolute max hardware-allowed acceleration
         false,              // Clamp X to allowed range instead of raising error
         false,              // Clamp V to allowed range instead of raising error
         false,              // Clamp A to allowed range instead of raising error
