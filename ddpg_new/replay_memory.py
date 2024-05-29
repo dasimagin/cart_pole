@@ -1,12 +1,12 @@
 from cartpole import State
-from utils import Config, make_tensor
+from utils import ExperimentConfig, make_tensor
 
 import random
 import torch
 
 
 class ReplayMemory:
-    def __init__(self, config: Config):
+    def __init__(self, config: ExperimentConfig):
         self.state_size = config.state_dim
         self.states = torch.zeros((config.memory_size, self.state_size*2 + 3))
         self.maxlen = config.memory_size
@@ -18,7 +18,7 @@ class ReplayMemory:
         self.states[self.ptr] = make_tensor(from_state, to_state, action, reward, self.config, done)
         self.ptr = (self.ptr + 1) % self.maxlen
         self.length = min(self.length + 1, self.maxlen)
-    
+
     def sample(self, sample_size: int, device):
         sample_size = min(self.length, sample_size)
         sample = self.states[random.sample(range(self.length), sample_size)]
@@ -29,3 +29,6 @@ class ReplayMemory:
             sample[:, self.state_size*2+1].reshape(-1, 1).to(device),
             sample[:, self.state_size*2+2].reshape(-1, 1).to(device)
         )
+
+    def __len__(self):
+        return self.length

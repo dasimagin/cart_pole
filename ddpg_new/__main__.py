@@ -1,97 +1,125 @@
 import sys
 sys.path.append("/Users/severovv/hse/cart-pole/cart-pole")
 
-from cartpole.simulator import Simulator, State, Error, Target
+from cartpole.simulator import Simulator, State, Error, Target, Config, Limits, Parameters
 from cartpole import log
+from math import pi
 
-from trainer import Trainer, Config, compute_reward, Scalar
-
-from itertools import count
+from trainer import Trainer, ExperimentConfig, compute_reward, Scalar
 
 import pathlib
 import datetime
 import tqdm
 import torch
 
-config = Config(
-    state_dim = 5,
-    action_dim = 1,
-    max_action = 5,
-    discount = 0.99,
-    memory_size = int(1e6),
-    device_name = 'mps',
-    batch_size = 1024,
-    actor_lr = 1e-5,
-    actor_grad_norm=0.1,
-    actor_width=1024,
-    critic_lr = 3e-4,
-    critic_grad_norm=0.1,
-    critic_noise=0.1,
-    critic_width=1024,
-    tau = 0.01,
-    finish_penalty=0
-)
-
-delta = 0.02
-total = 0
-
-logdir = pathlib.Path.cwd() / "trainings" / datetime.datetime.now().ctime()
-if not logdir.exists():
-    logdir.mkdir(parents=True)
+from matplotlib import pyplot as plt
 
 
-log.setup(log_path=str(logdir / 'training.mcap'), level=log.Level.DEBUG)
-cartpole = Simulator(integration_step=delta/20)
-trainer = Trainer(log, config)
-state = State()
+def run_experiment(config: ExperimentConfig):
+    logdir = pathlib.Path.cwd() / "trainings" / datetime.datetime.now().ctime()
+    if not logdir.exists():
+        logdir.mkdir(parents=True)
+    log.setup(log_path=str(logdir / 'training.mcap'), level=log.Level.DEBUG)
 
-rewards = []
-
-for episode in tqdm.tqdm(count()):
-    state = State(
-        cart_position=torch.randn((1,)).item()*0.2,
-        pole_angle=torch.randn((1, )).item()*0.5
+    cartpole = Simulator()
+    cartpole.set_config(Config(
+            hardware_limit=Limits(
+                cart_position=0.5, cart_velocity=2.0, cart_acceleration=5.0
+            ),
+            control_limit=Limits(),
+            parameters=Parameters(gravity=9.81, friction_coef=0.1, mass_coef=4),
+        )
     )
 
-    cartpole.reset(state=state)
-    total_reward = 0
+    trainer = Trainer(log, config)
+    state = State()
 
-    for t in tqdm.tqdm(range(500), leave=False):
-        total += 1
-        prev_state = state
+    rewards = []
+    total = 0
 
-        if episode > 5:
-            action = trainer.select_action(state, sigma=0.1)
-        else:
-            action = torch.tensor(0)
+    for episode in tqdm.tqdm(range(config.episodes_count)):
+        state = State(
+            cart_position=torch.randn((1,)).item()*0.3,
+            pole_angle= torch.randn((1,)).item()*pi/4,
+            pole_angular_velocity=torch.randn((1,)).item()*0.01
+        )
 
-        trainer.log_predictions(state, total)
-        action = action.item()
+        cartpole.reset(state=state)
+        total_reward = 0
 
-        cartpole.set_target(Target(acceleration=action))
+        for t in tqdm.tqdm(range(1000), leave=False):
+            total += 1
+            prev_state = state
 
-        cartpole.advance(delta)
-        state = cartpole.get_state()
-        reward = compute_reward(state)
-        if state.error:
-            reward = -10
+            if episode < config.warmup_stay:
+                action = torch.tensor(0)
+            elif episode < config.warmup_stay + config.warmup_random:
+                action = config.max_action * (2*torch.rand((1,)) - 1) / 5
+            else:
+                action = trainer.select_action(state, sigma=config.action_noise)
 
-        total_reward = value=total_reward + reward
-        done = (state.error != Error.NO_ERROR) or (t == 499)
 
-        trainer.memory.add(prev_state, state, action, reward, done)
+            trainer.log_predictions(state, total)
+            action = action.item()
 
-        batch = trainer.memory.sample(trainer.config.batch_size, trainer.device)
-        if len(batch) > config.batch_size:
-            trainer.train_critic(batch, total)
-            trainer.train_actor(batch, total)
-            trainer.soft_update()
+            cartpole.set_target(Target(acceleration=action))
+            cartpole.advance(config.delta)
+            state = cartpole.get_state()
 
-        log.publish('/cartpole/state', state, total)
-        log.publish('/cartpole/reward', Scalar(value=reward), total)
-        log.publish('/cartpole/episode_reward', Scalar(value=total_reward), total)
-        log.publish('cartpole/ten_reward_mean', Scalar(value=torch.mean(torch.tensor(rewards[-10:])).item()))
+            done = (state.error != Error.NO_ERROR) or (abs(state.pole_angle) > pi*4)
+            if done:
+                reward = config.finish_penalty
+            else:
+                reward = compute_reward(state)
+            total_reward += reward
 
-        if done:
-            rewards.append(total_reward)
-            break
+            trainer.memory.add(prev_state, state, action, reward, done)
+
+            if total % 3 == 0 and len(trainer.memory) >= config.batch_size:
+                batch = trainer.memory.sample(trainer.config.batch_size, trainer.device)
+                if episode > config.critic_start:
+                    trainer.train_critic(batch, total)
+                if episode > config.actor_start:
+                    trainer.train_actor(batch, total)
+                if episode > min(config.actor_start, config.critic_start):
+                    trainer.soft_update()
+
+            log.publish('/cartpole/state', state, datetime.datetime.now().timestamp())
+            log.publish('/cartpole/reward', Scalar(value=reward), datetime.datetime.now().timestamp())
+            log.publish('/cartpole/episode_reward', Scalar(value=total_reward), datetime.datetime.now().timestamp())
+            log.publish('cartpole/ten_reward_mean', Scalar(value=torch.mean(torch.tensor(rewards[-10:])).item()), datetime.datetime.now().timestamp())
+
+            if done:
+                rewards.append(total_reward)
+                break
+    return rewards
+
+run_experiment(
+    ExperimentConfig(
+        action_noise=0.01,
+        warmup_random=10,
+        warmup_stay=2,
+        critic_start=2,
+        actor_start=12,
+        state_dim = 6,
+        action_dim = 1,
+        max_action = 3,
+        discount = 0.99,
+        memory_size = int(1e5),
+        device_name = 'mps',
+        batch_size = 1024,
+        actor_lr = 1e-4,
+        actor_grad_norm=1.0,
+        actor_width=256,
+        actor_layers=3,
+        critic_grad_norm=1.0,
+        critic_noise=0.1,
+        critic_width=256,
+        critic_layers=3,
+        critic_lr = 1e-3,
+        tau = 0.05,
+        finish_penalty=-10,
+        episodes_count=200,
+        delta=0.02,
+    )
+)
