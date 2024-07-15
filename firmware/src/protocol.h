@@ -12,7 +12,7 @@ namespace cartpole {
 
 class Protocol {
 private:
-    static const uint32_t SERIAL_SPEED = 500000;
+    static const uint32_t SERIAL_SPEED = 2000000;
     static const uint8_t FRAME_EOF = 0x00;
 
     uint8_t rxBuff[256];
