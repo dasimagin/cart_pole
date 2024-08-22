@@ -1,0 +1,28 @@
+name: docs
+
+on:
+  push:
+    branches:
+      - master
+      - cart-pole-3  # TODO: Remove after merging to master
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      # TODO: Add proper chaching
+      # TODO: Maybe use poetry-based action
+      - run: pip install mkdocs-material mkdocs-material-extensions mkdocstrings[python] mike poetry
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - run: mike deploy --push --force --update-aliases $(poetry version -s) latest

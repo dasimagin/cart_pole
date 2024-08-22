@@ -1,0 +1,43 @@
+{
+    "configById": {
+        "Plot!3l785jp": {
+            "title": "Uniform",
+            "paths": [
+                {
+                    "value": "/random.value",
+                    "enabled": true,
+                    "timestampMethod": "receiveTime"
+                }
+            ],
+            "minYValue": -0.1,
+            "maxYValue": 1.1,
+            "showXAxisLabels": true,
+            "showYAxisLabels": true,
+            "showLegend": true,
+            "legendDisplay": "floating",
+            "showPlotValuesInLegend": true,
+            "isSynced": true,
+            "xAxisVal": "timestamp",
+            "sidebarDimension": 240,
+            "followingViewWidth": 10
+        },
+        "RawMessages!29nyppp": {
+            "diffEnabled": false,
+            "diffMethod": "custom",
+            "diffTopicPath": "",
+            "showFullMessageForDiff": false,
+            "topicPath": "/random"
+        }
+    },
+    "globalVariables": {},
+    "userNodes": {},
+    "linkedGlobalVariables": [],
+    "playbackConfig": {
+        "speed": 1
+    },
+    "layout": {
+        "direction": "row",
+        "first": "RawMessages!29nyppp",
+        "second": "Plot!3l785jp"
+    }
+}

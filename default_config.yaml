@@ -1,0 +1,12 @@
+control_limit:
+  cart_position: 0.15
+  cart_velocity: 2.0
+  cart_acceleration: 3.0
+hardware_limit:
+  cart_position: 0.20
+  cart_velocity: 3.0
+  cart_acceleration: 5.0
+parameters:
+  friction_coef: 0.30
+  gravity: 9.81
+  mass_coef: 5

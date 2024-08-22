@@ -1,0 +1,88 @@
+{
+  "configById": {
+    "RawMessages!3ix6wfo": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/cartpole/info"
+    },
+    "Plot!c57nav": {
+      "title": "Cart",
+      "paths": [
+        {
+          "value": "/cartpole/state.cart_position",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/cartpole/state.cart_velocity",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/cartpole/state.cart_acceleration",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "minYValue": -3,
+      "maxYValue": 3,
+      "showXAxisLabels": false,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 7
+    },
+    "Plot!2myeztf": {
+      "title": "Pole",
+      "paths": [
+        {
+          "value": "/cartpole/state.pole_angle",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/cartpole/state.pole_angular_velocity",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showXAxisLabels": false,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 7
+    },
+    "CartPole Panel.CartPole Panel!3hli21y": {}
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "linkedGlobalVariables": [],
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "direction": "row",
+    "first": {
+      "first": {
+        "first": "RawMessages!3ix6wfo",
+        "second": "Plot!c57nav",
+        "direction": "column"
+      },
+      "second": "Plot!2myeztf",
+      "direction": "column",
+      "splitPercentage": 65.14522821576763
+    },
+    "second": "CartPole Panel.CartPole Panel!3hli21y",
+    "splitPercentage": 38.66090712742981
+  }
+}

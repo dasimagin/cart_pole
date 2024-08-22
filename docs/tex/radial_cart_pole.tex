@@ -1,15 +1,25 @@
-\documentclass[dvisvgm]{standalone}
+\documentclass[dvisvgm,tikz]{standalone}
 
+\usepackage{amsmath}
+\usepackage{mathpazo}
+\usepackage[utf8]{inputenc}
+\usepackage{graphics}
+\usepackage[colorlinks,urlcolor=blue]{hyperref}
+\usepackage{standalone}
+\usepackage{svg}
 \usepackage{tikz}
 \usepackage{tikz-3dplot}
 
-\usetikzlibrary{decorations.pathreplacing,calligraphy}
+\usetikzlibrary{arrows.meta,decorations.pathreplacing,calligraphy}
+
+\usetikzlibrary{arrows.meta}
+\special{background White}
 
 \begin{document}
 % camera params
 \tdplotsetmaincoords{70}{110}
 
-\begin{tikzpicture}[tdplot_main_coords, scale = 10]
+\begin{tikzpicture}[tdplot_main_coords, scale = 10, >=stealth]
     % EPSILON
     \pgfmathsetmacro{\e}{0.001}
 
@@ -67,7 +77,6 @@
         \draw[dashed, canvas is zx plane at y=\a] (-180-\beta:0) -- (-180-\beta:\thetarad);
         \draw[canvas is zx plane at y=\a, orange!70!black] ({(-180-\beta)/2}:\thetarad+0.02) node {$\theta$};
 
-
         % red-green right angle
         \draw[canvas is yz plane at x=0] (\a-\rs,0) -- (\a-\rs,\rs) -- (\a, \rs);
 
@@ -81,6 +90,7 @@
     \draw[orange!70!black]  ({(80+\alpha)/2}:\phirad+0.05) node {$\phi$};
 
     % formula
-    \draw (0.0,0.4,0.6) node[fill=yellow!30, draw, rounded corners] {\LARGE $\ddot{\theta} = - \frac{\ddot{\phi} r \cos \theta + g\sin \theta}{l_p + \frac{I_p}{m_p l_p}}$};
+    \draw (0.0,0.4,0.5) node[fill=yellow!30, draw, rounded corners] {\large $\ddot{\theta} = - b\dot{\theta} - k \big( \ddot{\phi} r \cos \theta + g\sin \theta \big) $};
+    \draw (0.0,0.21,0.35) node[fill=yellow!30, draw, rounded corners] {\large $\ddot{\phi} = u$};
 \end{tikzpicture}
 \end{document}
